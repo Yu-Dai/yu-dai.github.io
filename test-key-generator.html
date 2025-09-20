@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金鑰生成測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .key-display {
+            background: #f8f9fa;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 18px;
+            text-align: center;
+            color: #007bff;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #0c5460;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 金鑰生成測試工具</h1>
+        
+        <div class="success">
+            <h3>🧪 測試模式已啟用</h3>
+            <p>在此模式下，金鑰生成不受每日限制約束，可無限次生成測試金鑰。</p>
+        </div>
+
+        <div class="info">
+            <h3>使用說明：</h3>
+            <ol>
+                <li>點擊「生成測試金鑰」按鈕</li>
+                <li>複製生成的金鑰</li>
+                <li>在 ClickSprite 程式中輸入此金鑰</li>
+                <li>檢查是否驗證成功</li>
+            </ol>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="btn" onclick="generateTestKey()">🔑 生成測試金鑰</button>
+            <button class="btn" onclick="copyKey()" id="copyBtn" disabled>📋 複製金鑰</button>
+        </div>
+
+        <div id="keyDisplay" class="key-display" style="display: none;">
+            金鑰將在這裡顯示
+        </div>
+
+        <div id="resultArea"></div>
+
+        <div class="info">
+            <h3>測試資訊：</h3>
+            <ul>
+                <li><strong>金鑰格式：</strong> CS-XXXX-XXXX-XXXX</li>
+                <li><strong>有效期：</strong> 24小時</li>
+                <li><strong>使用次數：</strong> 10次</li>
+                <li><strong>每日限制：</strong> 5個金鑰</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="key-generator.js"></script>
+    <script>
+        let currentKey = '';
+
+        async function generateTestKey() {
+            try {
+                const resultArea = document.getElementById('resultArea');
+                const keyDisplay = document.getElementById('keyDisplay');
+                const copyBtn = document.getElementById('copyBtn');
+                
+                // 顯示載入狀態
+                resultArea.innerHTML = '<div class="info">正在生成金鑰...</div>';
+                
+                // 生成金鑰
+                currentKey = await window.keyGenerator.generateKey();
+                
+                // 顯示金鑰
+                keyDisplay.textContent = currentKey;
+                keyDisplay.style.display = 'block';
+                copyBtn.disabled = false;
+                
+                // 顯示成功訊息
+                resultArea.innerHTML = `
+                    <div class="success">
+                        <h4>✅ 金鑰生成成功！</h4>
+                        <p>金鑰：<strong>${currentKey}</strong></p>
+                        <p>請複製此金鑰並在 ClickSprite 程式中輸入以進行測試。</p>
+                    </div>
+                `;
+                
+                console.log('生成的金鑰:', currentKey);
+                
+            } catch (error) {
+                console.error('生成金鑰失敗:', error);
+                document.getElementById('resultArea').innerHTML = `
+                    <div class="error">
+                        <h4>❌ 金鑰生成失敗</h4>
+                        <p>錯誤訊息：${error.message}</p>
+                        <p>請檢查瀏覽器控制台以獲取詳細資訊。</p>
+                    </div>
+                `;
+            }
+        }
+
+        function copyKey() {
+            if (currentKey) {
+                navigator.clipboard.writeText(currentKey).then(() => {
+                    const resultArea = document.getElementById('resultArea');
+                    resultArea.innerHTML = `
+                        <div class="success">
+                            <h4>✅ 金鑰已複製到剪貼板</h4>
+                            <p>現在可以在 ClickSprite 程式中貼上此金鑰進行測試。</p>
+                        </div>
+                    `;
+                }).catch(err => {
+                    console.error('複製失敗:', err);
+                    alert('複製失敗，請手動複製金鑰');
+                });
+            }
+        }
+
+        // 頁面載入時顯示初始資訊
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('resultArea').innerHTML = `
+                <div class="info">
+                    <h4>🚀 準備測試</h4>
+                    <p>點擊上方按鈕開始生成測試金鑰。</p>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>

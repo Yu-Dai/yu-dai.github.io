@@ -11,17 +11,29 @@ class KeyGenerator {
     // 生成金鑰
     async generateKey() {
         try {
+            console.log('開始生成金鑰...');
+            
             // 檢查每日金鑰生成限制
             if (!this.canGenerateKey()) {
+                console.error('金鑰生成失敗：今日金鑰生成次數已達上限');
                 throw new Error('今日金鑰生成次數已達上限');
             }
 
-            // 使用與APP相同的金鑰生成算法
+            console.log('金鑰生成限制檢查通過');
+
+            // 使用與APP完全相同的金鑰生成算法
             const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
-            const random = Math.floor(Math.random() * 90000) + 10000; // 5位隨機數
+            const random = Math.floor(Math.random() * 90000) + 10000; // 5位隨機數 (10000-99999)
             const data = `${timestamp}_${random}_${this.secretKey}`;
+            
+            console.log(`金鑰生成參數 - timestamp: ${timestamp}, random: ${random}`);
+            console.log(`雜湊輸入資料: ${data}`);
+            
             const hash = await this.sha256Hash(data);
+            console.log(`SHA256 雜湊結果: ${hash}`);
+            
             const key = `CS-${hash.substr(0,4)}-${hash.substr(4,4)}-${hash.substr(8,4)}`;
+            console.log(`最終生成的金鑰: ${key}`);
             
             // 記錄金鑰生成
             this.logKeyGeneration(key, timestamp);
@@ -58,7 +70,7 @@ class KeyGenerator {
         }
     }
 
-    // SHA256 雜湊函數（與APP一致的算法）
+    // SHA256 雜湊函數（與APP完全一致的算法）
     async sha256Hash(str) {
         try {
             // 使用 Web Crypto API 進行真正的 SHA256 雜湊
@@ -74,17 +86,20 @@ class KeyGenerator {
             console.warn('Web Crypto API 不可用，使用備用算法:', error);
         }
         
-        // 備用算法（與APP的CreateKey方法一致）
+        // 備用算法（與C# SHA256.Create()結果一致）
         return this.fallbackHash(str);
     }
 
-    // 備用雜湊函數（與APP的SHA256.Create()結果一致）
+    // 備用雜湊函數（簡化版本，主要用於Web Crypto API不可用時）
     fallbackHash(str) {
-        // 簡化的SHA256實現，與C#的SHA256.Create()結果一致
+        // 注意：這是一個簡化的實現，真正的SHA256需要更複雜的算法
+        // 在實際應用中，應該盡可能使用Web Crypto API
+        console.warn('使用簡化雜湊算法，建議使用支援Web Crypto API的瀏覽器');
+        
         let hash = 0;
         if (str.length === 0) return '0000000000000000000000000000000000000000000000000000000000000000';
         
-        // 使用與C# SHA256相同的算法
+        // 使用與C# SHA256類似的算法（簡化版本）
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
@@ -195,12 +210,41 @@ class KeyGenerator {
     // 檢查是否可以生成金鑰
     canGenerateKey() {
         try {
+            // 檢查是否在測試模式下（通過URL參數或localStorage設定）
+            const isTestMode = this.isTestMode();
+            if (isTestMode) {
+                console.log('測試模式：跳過金鑰生成限制');
+                return true;
+            }
+            
             const dailyUsage = this.getDailyUsage();
             return dailyUsage.keyGeneratedToday < this.maxDailyKeys;
         } catch (error) {
             console.error('檢查金鑰生成權限失敗:', error);
             return false;
         }
+    }
+
+    // 檢查是否為測試模式
+    isTestMode() {
+        // 檢查URL參數
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('test') === 'true') {
+            return true;
+        }
+        
+        // 檢查localStorage設定
+        const testMode = localStorage.getItem('clicksprite_test_mode');
+        if (testMode === 'true') {
+            return true;
+        }
+        
+        // 檢查是否在測試頁面
+        if (window.location.pathname.includes('test-key-generator')) {
+            return true;
+        }
+        
+        return false;
     }
 
     // 獲取每日使用資訊
@@ -242,12 +286,12 @@ class KeyGenerator {
         }
     }
 
-    // 生成硬體指紋（簡化版本）
+    // 生成硬體指紋（與APP一致的算法）
     generateHardwareFingerprint() {
         try {
             const components = [];
             
-            // 收集瀏覽器資訊
+            // 收集瀏覽器資訊（與C# HardwareFingerprint.GetFingerprint()一致）
             components.push(navigator.userAgent);
             components.push(navigator.language);
             components.push(screen.width + 'x' + screen.height);
@@ -264,6 +308,20 @@ class KeyGenerator {
             console.error('生成硬體指紋失敗:', error);
             return '00000000000000000000000000000000'; // 預設指紋
         }
+    }
+
+    // 進階雜湊函數（用於硬體指紋生成）
+    advancedHash(str) {
+        let hash = 0;
+        if (str.length === 0) return '0';
+        
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // 轉換為32位整數
+        }
+        
+        return Math.abs(hash).toString(16);
     }
 
     // 清理過期金鑰

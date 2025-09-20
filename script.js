@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUI();
     initializeVerify();
     initializeKeyGenerator();
+    
+    // 添加鍵盤事件監聽器
+    document.addEventListener('keydown', handleKeyPress);
 });
 
 // 初始化頁面
@@ -191,48 +194,277 @@ function downloadProgram() {
 }
 
 // 觀看廣告
-function watchAd() {
+async function watchAd() {
     if (isWatchingAd || userStats.isPremium) return;
     
-    // 檢查是否可以生成金鑰
-    if (!window.keyGenerator || !window.keyGenerator.canGenerateKey()) {
-        showNotification('今日金鑰生成次數已達上限，請明天再試', 'warning');
-        return;
-    }
-    
     try {
-        isWatchingAd = true;
-        const watchAdBtn = document.getElementById('watchAdBtn');
-        const adTimerElement = document.getElementById('adTimer');
+        console.log('開始觀看廣告...');
         
-        // 禁用按鈕
-        watchAdBtn.disabled = true;
-        watchAdBtn.textContent = '觀看中...';
+        // 檢查是否可以生成金鑰
+        const canGenerate = await window.googleSheetsKeyManager.checkDailyLimit();
+        if (!canGenerate) {
+            showNotification('今日金鑰生成次數已達上限，請明天再試', 'warning');
+            return;
+        }
         
-        // 追蹤廣告觀看事件
-        trackEvent('ad', 'ad_watch_start');
-        
-        // 開始倒數計時
-        let countdown = 5;
-        adTimerElement.textContent = countdown;
-        
-        adTimer = setInterval(() => {
-            countdown--;
-            adTimerElement.textContent = countdown;
-            
-            if (countdown <= 0) {
-                clearInterval(adTimer);
-                completeAdWatch();
-            }
-        }, 1000);
-        
-        // 模擬廣告播放
-        simulateAdPlay();
+        // 顯示廣告獎勵視窗
+        showAdRewardModal();
         
     } catch (error) {
         console.error('觀看廣告失敗:', error);
         showNotification('觀看廣告失敗，請重試', 'error');
-        resetAdButton();
+    }
+}
+
+// 顯示廣告獎勵視窗
+function showAdRewardModal() {
+    const modal = document.getElementById('adRewardModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // 防止背景滾動
+        
+        // 開始廣告播放
+        startAdPlayback();
+    }
+}
+
+// 關閉廣告獎勵視窗
+function closeAdReward() {
+    const modal = document.getElementById('adRewardModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // 恢復背景滾動
+        
+        // 停止廣告播放
+        stopAdPlayback();
+    }
+}
+
+// 點擊遮罩關閉視窗
+function handleOverlayClick(event) {
+    if (event.target.classList.contains('ad-reward-overlay')) {
+        closeAdReward();
+    }
+}
+
+// ESC 鍵關閉視窗
+function handleKeyPress(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('adRewardModal');
+        if (modal && (modal.style.display === 'flex' || modal.style.display === 'block')) {
+            closeAdReward();
+        }
+    }
+}
+
+// 廣告播放系統
+let adPlayback = {
+    isPlaying: false,
+    isCompleted: false, // 防止重複完成
+    totalTime: 30, // 總觀看時間（秒）
+    watchedTime: 0,
+    currentAdIndex: 0,
+    timer: null,
+    ads: [
+        {
+            title: "風之國度 Online",
+            description: "風之國度Online以療癒風格打造全新PC MMO,帶你展開充滿愛與勇氣的暖心冒險",
+            duration: 15,
+            logo: "📱"
+        },
+        {
+            title: "熱門手遊推薦",
+            description: "探索最新的手機遊戲，享受精彩的遊戲體驗",
+            duration: 20,
+            logo: "🎮"
+        },
+        {
+            title: "科技產品特惠",
+            description: "最新科技產品限時優惠，錯過就沒有了！",
+            duration: 10,
+            logo: "💻"
+        }
+    ]
+};
+
+// 開始廣告播放
+function startAdPlayback() {
+    if (adPlayback.isPlaying) return;
+    
+    adPlayback.isPlaying = true;
+    adPlayback.isCompleted = false; // 重置完成狀態
+    adPlayback.watchedTime = 0;
+    adPlayback.currentAdIndex = 0;
+    
+    // 追蹤廣告觀看事件
+    trackEvent('ad', 'ad_watch_start');
+    
+    // 載入第一個廣告
+    loadAd(adPlayback.currentAdIndex);
+    
+    // 開始計時器
+    adPlayback.timer = setInterval(() => {
+        updateAdPlayback();
+    }, 1000);
+    
+    // 更新按鈕狀態
+    updateAdButtons();
+}
+
+// 停止廣告播放
+function stopAdPlayback() {
+    adPlayback.isPlaying = false;
+    
+    if (adPlayback.timer) {
+        clearInterval(adPlayback.timer);
+        adPlayback.timer = null;
+    }
+    
+    // 重置按鈕
+    resetAdButton();
+}
+
+// 載入廣告
+function loadAd(adIndex) {
+    const ad = adPlayback.ads[adIndex];
+    if (!ad) return;
+    
+    // 重新載入 AdSense 廣告
+    if (window.adsbygoogle) {
+        (adsbygoogle = window.adsbygoogle || []).push({});
+    }
+    
+    // 重置進度條
+    const progressFill = document.getElementById('adProgressFill');
+    if (progressFill) {
+        progressFill.style.width = '0%';
+    }
+    
+    console.log(`載入廣告 ${adIndex + 1}: ${ad.title}`);
+}
+
+// 更新廣告播放進度
+function updateAdPlayback() {
+    if (!adPlayback.isPlaying) return;
+    
+    adPlayback.watchedTime++;
+    
+    // 更新顯示
+    updateAdDisplay();
+    
+    // 檢查是否需要載入下一個廣告
+    const currentAd = adPlayback.ads[adPlayback.currentAdIndex];
+    if (currentAd && adPlayback.watchedTime >= currentAd.duration) {
+        // 載入下一個廣告
+        adPlayback.currentAdIndex++;
+        if (adPlayback.currentAdIndex < adPlayback.ads.length) {
+            loadAd(adPlayback.currentAdIndex);
+        }
+    }
+    
+    // 檢查是否完成總觀看時間（只停止計時器，不自動獲得獎勵）
+    if (adPlayback.watchedTime >= adPlayback.totalTime) {
+        // 停止播放，但不自動獲得獎勵
+        stopAdPlayback();
+        // 不調用 completeAdWatch()，讓用戶手動點擊按鈕
+    }
+}
+
+// 更新廣告顯示
+function updateAdDisplay() {
+    const timeRemainingEl = document.getElementById('adTimeRemaining');
+    const progressFill = document.getElementById('adProgressFill');
+    
+    const remainingTime = Math.max(0, adPlayback.totalTime - adPlayback.watchedTime);
+    
+    if (timeRemainingEl) timeRemainingEl.textContent = remainingTime;
+    
+    // 更新進度條
+    if (progressFill) {
+        const progress = (adPlayback.watchedTime / adPlayback.totalTime) * 100;
+        progressFill.style.width = `${Math.min(progress, 100)}%`;
+    }
+    
+    // 更新跳過按鈕
+    updateAdButtons();
+}
+
+// 更新廣告按鈕狀態
+function updateAdButtons() {
+    const skipBtn = document.getElementById('adSkipBtn');
+    const remainingTime = Math.max(0, adPlayback.totalTime - adPlayback.watchedTime);
+    
+    if (skipBtn) {
+        if (adPlayback.watchedTime >= adPlayback.totalTime) {
+            skipBtn.disabled = false;
+            skipBtn.textContent = '獲得獎勵';
+            skipBtn.onclick = () => {
+                completeAdWatch();
+                closeAdReward(); // 立即關閉視窗
+            };
+        } else if (adPlayback.watchedTime >= 30) {
+            skipBtn.disabled = false;
+            skipBtn.textContent = `跳過廣告 (${remainingTime}秒後完成)`;
+            skipBtn.onclick = skipAd;
+        } else {
+            skipBtn.disabled = true;
+            skipBtn.textContent = `跳過廣告 (${Math.max(0, 30 - adPlayback.watchedTime)}秒後可用)`;
+        }
+    }
+}
+
+// 跳過廣告
+function skipAd() {
+    if (adPlayback.watchedTime < 30) {
+        showNotification('需要觀看至少 30 秒才能跳過', 'warning');
+        return;
+    }
+    
+    completeAdWatch();
+}
+
+// 完成廣告觀看
+async function completeAdWatch() {
+    // 防止重複執行
+    if (adPlayback.isCompleted) return;
+    adPlayback.isCompleted = true;
+    
+    try {
+        // 檢查是否可以生成金鑰
+        if (!window.keyGenerator || !window.keyGenerator.canGenerateKey()) {
+            showNotification('今日金鑰生成次數已達上限，請明天再試', 'warning');
+            return;
+        }
+
+        // 生成金鑰（異步）
+        const key = await window.keyGenerator.generateKey();
+        
+        // 更新用戶統計（只增加廣告觀看次數，不影響金鑰生成次數）
+        userStats.dailyAdViews++;
+        userStats.totalAdViews++;
+        userStats.canWatchAd = userStats.dailyAdViews < userStats.maxDailyAdViews;
+        
+        // 儲存統計
+        saveUserStats(userStats);
+        
+        // 顯示金鑰
+        showKey(key);
+        
+        // 更新 UI
+        updateUI();
+        
+        // 追蹤廣告完成事件
+        trackEvent('ad', 'ad_watch_complete', { 
+            key: key, 
+            watchedTime: adPlayback.watchedTime,
+            totalTime: adPlayback.totalTime
+        });
+        
+        showNotification('恭喜！您獲得了免費金鑰！', 'success');
+        
+    } catch (error) {
+        console.error('完成廣告觀看失敗:', error);
+        showNotification('獲得金鑰失敗：' + error.message, 'error');
     }
 }
 
@@ -287,7 +519,38 @@ async function completeAdWatch() {
     }
 }
 
-// 生成金鑰
+// 生成免費金鑰（使用 Google Sheets）
+async function generateFreeKey() {
+    try {
+        console.log('開始生成免費金鑰...');
+        
+        // 顯示載入狀態
+        showLoadingState('正在生成金鑰...');
+        
+        // 生成金鑰
+        const result = await window.googleSheetsKeyManager.generateFreeKey();
+        
+        if (result.success) {
+            // 顯示金鑰
+            showKey(result.key);
+            
+            // 更新統計
+            await updateUserStats();
+            
+            showNotification('免費金鑰生成成功！', 'success');
+        } else {
+            showNotification('金鑰生成失敗: ' + result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('生成免費金鑰失敗:', error);
+        showNotification('金鑰生成失敗，請重試', 'error');
+    } finally {
+        hideLoadingState();
+    }
+}
+
+// 生成金鑰（舊版本，保持向後兼容）
 function generateKey() {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substr(2, 8);
@@ -310,13 +573,18 @@ function showKey(key) {
 }
 
 // 複製金鑰
-function copyKey() {
-    const keyCode = document.getElementById('keyCode');
-    if (keyCode) {
-        navigator.clipboard.writeText(keyCode.textContent).then(() => {
+async function copyKey() {
+    try {
+        const keyCode = document.getElementById('keyCode');
+        if (keyCode) {
+            await navigator.clipboard.writeText(keyCode.textContent);
             showNotification('金鑰已複製到剪貼簿！', 'success');
-        }).catch(() => {
-            // 回退方案
+        }
+    } catch (error) {
+        console.error('複製金鑰失敗:', error);
+        // 回退方案
+        const keyCode = document.getElementById('keyCode');
+        if (keyCode) {
             const textArea = document.createElement('textarea');
             textArea.value = keyCode.textContent;
             document.body.appendChild(textArea);
@@ -324,7 +592,7 @@ function copyKey() {
             document.execCommand('copy');
             document.body.removeChild(textArea);
             showNotification('金鑰已複製到剪貼簿！', 'success');
-        });
+        }
     }
 }
 
@@ -801,14 +1069,6 @@ function initializeVerify() {
     if (document.getElementById('testArea')) {
         verifyApp = new IParkVerify();
         console.log('IPark 功能驗證程式已載入');
-        
-        // 調試：檢查元素是否正確載入
-        console.log('測試區域元素:', document.getElementById('testArea'));
-        console.log('開始按鈕元素:', document.getElementById('startBtn'));
-        console.log('停止按鈕元素:', document.getElementById('stopBtn'));
-        console.log('控制面板元素:', document.querySelector('.control-panel'));
-    } else {
-        console.error('找不到測試區域元素，功能驗證無法初始化');
     }
 }
 
@@ -824,4 +1084,96 @@ function initializeKeyGenerator() {
     } catch (error) {
         console.error('初始化金鑰生成器失敗:', error);
     }
+}
+
+// 更新用戶統計（使用 Google Sheets）
+async function updateUserStats() {
+    try {
+        const stats = await window.googleSheetsKeyManager.getKeyStats();
+        
+        // 更新頁面顯示
+        const remainingUses = document.getElementById('remainingUses');
+        if (remainingUses) {
+            remainingUses.textContent = stats.remaining;
+        }
+        
+        // 更新每日觀看次數
+        const dailyViews = document.getElementById('dailyViews');
+        if (dailyViews) {
+            const canGenerate = await window.googleSheetsKeyManager.checkDailyLimit();
+            const dailyCount = 5 - (canGenerate ? 0 : 1); // 簡化計算
+            dailyViews.textContent = `${dailyCount}/5`;
+        }
+        
+    } catch (error) {
+        console.error('更新統計失敗:', error);
+    }
+}
+
+// 顯示載入狀態
+function showLoadingState(message) {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loadingState';
+    loadingDiv.className = 'loading-state';
+    loadingDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        z-index: 10000;
+        text-align: center;
+    `;
+    loadingDiv.innerHTML = `
+        <div style="margin-bottom: 10px;">⏳</div>
+        <div>${message}</div>
+    `;
+    
+    document.body.appendChild(loadingDiv);
+}
+
+// 隱藏載入狀態
+function hideLoadingState() {
+    const loadingDiv = document.getElementById('loadingState');
+    if (loadingDiv) {
+        loadingDiv.remove();
+    }
+}
+
+// 顯示通知
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        z-index: 10000;
+        max-width: 300px;
+        word-wrap: break-word;
+    `;
+    
+    const colors = {
+        success: '#27ae60',
+        error: '#e74c3c',
+        warning: '#f39c12',
+        info: '#3498db'
+    };
+    
+    notification.style.background = colors[type] || colors.info;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // 3秒後自動移除
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }

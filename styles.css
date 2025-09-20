@@ -633,7 +633,6 @@ body {
 .verify {
     padding: 80px 0;
     background: #f8f9fa;
-    min-height: 100vh;
 }
 
 .verify h2 {
@@ -1099,6 +1098,320 @@ body {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* 廣告獎勵視窗樣式 */
+.ad-reward-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.ad-reward-modal[style*="display: block"] {
+    display: flex !important;
+}
+
+.ad-reward-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+}
+
+.ad-reward-container {
+    position: relative;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease;
+    border: 1px solid #e1e5e9;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.ad-reward-header {
+    background: #f8f9fa;
+    color: #2c3e50;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.ad-reward-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.ad-close-btn {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    font-size: 1.2rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.ad-close-btn:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.ad-reward-content {
+    padding: 0;
+}
+
+/* 廣告視頻容器 */
+.ad-video-container {
+    background: #ffffff;
+    padding: 24px;
+    text-align: center;
+}
+
+.ad-video-player {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 32px 24px;
+    border: 1px solid #e1e5e9;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 廣告進度覆蓋層 */
+.ad-progress-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 16px;
+    color: white;
+}
+
+.ad-progress-overlay .ad-progress-bar {
+    background: rgba(255, 255, 255, 0.3);
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.ad-progress-overlay .ad-progress-fill {
+    background: #007bff;
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.ad-progress-overlay .ad-timer-display {
+    background: transparent;
+    color: white;
+    padding: 0;
+    border-radius: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.ad-video-placeholder {
+    max-width: 360px;
+    margin: 0 auto;
+}
+
+.ad-logo {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.8;
+}
+
+.ad-video-placeholder h4 {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.ad-video-placeholder p {
+    color: #6c757d;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+/* 進度條 */
+.ad-progress-bar {
+    background: #e9ecef;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.ad-progress-fill {
+    background: #007bff;
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.ad-timer-display {
+    background: #007bff;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 1.25rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+/* 控制區域 */
+.ad-controls {
+    padding: 24px;
+    background: #ffffff;
+    border-top: 1px solid #e1e5e9;
+}
+
+.ad-info {
+    margin-bottom: 20px;
+}
+
+.ad-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.ad-stats span {
+    background: #f8f9fa;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #e1e5e9;
+}
+
+.ad-reward-info {
+    text-align: center;
+    background: #e7f3ff;
+    color: #0056b3;
+    padding: 12px;
+    border-radius: 4px;
+    font-weight: 500;
+    border: 1px solid #b3d7ff;
+}
+
+.ad-buttons {
+    display: flex;
+    justify-content: center;
+}
+
+.ad-skip-btn {
+    padding: 12px 32px;
+    border: 1px solid;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 160px;
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.ad-skip-btn:hover:not(:disabled) {
+    background: #0056b3;
+    border-color: #0056b3;
+}
+
+.ad-skip-btn:disabled {
+    background: #6c757d;
+    border-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 響應式設計 - 廣告視窗 */
+@media (max-width: 768px) {
+    .ad-reward-modal {
+        padding: 10px;
+    }
+    
+    .ad-reward-container {
+        max-width: 100%;
+    }
+    
+    .ad-reward-header {
+        padding: 16px 20px;
+    }
+    
+    .ad-reward-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .ad-video-container {
+        padding: 20px;
+    }
+    
+    .ad-video-player {
+        padding: 24px 16px;
+    }
+    
+    .ad-video-placeholder h4 {
+        font-size: 1.3rem;
+    }
+    
+    .ad-video-placeholder p {
+        font-size: 0.9rem;
+    }
+    
+    .ad-controls {
+        padding: 20px;
+    }
+    
+    .ad-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .ad-skip-btn {
+        width: 100%;
+    }
 }
 
 /* 通知樣式 */

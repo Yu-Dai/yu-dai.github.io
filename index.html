@@ -80,10 +80,11 @@
         <!-- 廣告區域 1 -->
         <section class="ad-section">
             <div class="ad-container">
+                <!-- 橫向廣告 -->
                 <ins class="adsbygoogle"
                      style="display:block"
                      data-ad-client="ca-pub-3302498619485198"
-                     data-ad-slot="1234567890"
+                     data-ad-slot="1797161078"
                      data-ad-format="auto"
                      data-full-width-responsive="true"></ins>
             </div>
@@ -145,11 +146,13 @@
         <!-- 廣告區域 2 -->
         <section class="ad-section">
             <div class="ad-container">
+                <!-- 橫向廣告 -->
                 <ins class="adsbygoogle"
                      style="display:block"
                      data-ad-client="ca-pub-3302498619485198"
-                     data-ad-slot="0987654321"
-                     data-ad-format="rectangle"></ins>
+                     data-ad-slot="1797161078"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
             </div>
         </section>
 
@@ -354,15 +357,61 @@
         <!-- 廣告區域 3 -->
         <section class="ad-section">
             <div class="ad-container">
+                <!-- 橫向廣告 -->
                 <ins class="adsbygoogle"
                      style="display:block"
                      data-ad-client="ca-pub-3302498619485198"
-                     data-ad-slot="1122334455"
+                     data-ad-slot="1797161078"
                      data-ad-format="auto"
                      data-full-width-responsive="true"></ins>
             </div>
         </section>
     </main>
+
+    <!-- 廣告獎勵視窗 -->
+    <div id="adRewardModal" class="ad-reward-modal" style="display: none;">
+        <div class="ad-reward-overlay" onclick="handleOverlayClick(event)"></div>
+        <div class="ad-reward-container">
+            <div class="ad-reward-header">
+                <h3>🎬 觀看廣告獲得獎勵</h3>
+                <div class="ad-close-btn" onclick="closeAdReward()">×</div>
+            </div>
+            
+            <div class="ad-reward-content">
+                <!-- 廣告播放區域 -->
+                <div class="ad-video-container">
+                    <div class="ad-video-player" id="adVideoPlayer">
+                        <!-- 彈出式獎勵廣告 -->
+                        <ins class="adsbygoogle"
+                             style="display:block"
+                             data-ad-client="ca-pub-3302498619485198"
+                             data-ad-slot="1129278367"
+                             data-ad-format="auto"
+                             data-full-width-responsive="true"></ins>
+                        
+                        <!-- 廣告進度顯示 -->
+                        <div class="ad-progress-overlay">
+                            <div class="ad-progress-bar">
+                                <div class="ad-progress-fill" id="adProgressFill"></div>
+                            </div>
+                            <div class="ad-timer-display">
+                                <span id="adTimeRemaining">30</span> 秒
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 控制區域 -->
+                <div class="ad-controls">
+                    <div class="ad-buttons">
+                        <button id="adSkipBtn" class="ad-skip-btn" disabled onclick="skipAd()">
+                            跳過廣告 (30秒後可用)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 頁尾 -->
     <footer class="footer">
@@ -403,6 +452,7 @@
     </footer>
 
     <script src="key-generator.js"></script>
+    <script src="google-sheets-key-manager.js"></script>
     <script src="script.js"></script>
     <script>
         // 初始化 Google AdSense
