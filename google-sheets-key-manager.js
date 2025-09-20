@@ -84,16 +84,16 @@ class GoogleSheetsKeyManager {
                 };
             }
 
-            // 查詢金鑰是否存在
-            const response = await fetch(this.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'VALIDATE_KEY',
-                    key: keyCode
-                })
+            // 查詢金鑰是否存在（使用 GET 請求避免 CORS）
+            const params = new URLSearchParams({
+                action: 'VALIDATE_KEY',
+                key: keyCode
+            });
+
+            const url = `${this.apiUrl}?${params.toString()}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors'
             });
 
             if (!response.ok) {
@@ -151,16 +151,16 @@ class GoogleSheetsKeyManager {
         try {
             console.log(`開始使用金鑰: ${keyCode}`);
             
-            const response = await fetch(this.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'USE_KEY',
-                    key: keyCode,
-                    hardwareFingerprint: hardwareFingerprint
-                })
+            const params = new URLSearchParams({
+                action: 'USE_KEY',
+                key: keyCode,
+                hardwareFingerprint: hardwareFingerprint
+            });
+
+            const url = `${this.apiUrl}?${params.toString()}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors'
             });
 
             if (!response.ok) {
@@ -205,17 +205,13 @@ class GoogleSheetsKeyManager {
         }
     }
 
-    // 獲取所有金鑰
+    // 獲取所有金鑰（使用 GET 請求避免 CORS）
     async getAllKeys() {
         try {
-            const response = await fetch(this.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'GET_ALL_KEYS'
-                })
+            const url = `${this.apiUrl}?action=GET_ALL_KEYS`;
+            const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors'
             });
 
             if (!response.ok) {
@@ -294,30 +290,26 @@ class GoogleSheetsKeyManager {
         return `CS-${keyType}-${timestamp}-${hash}`;
     }
 
-    // 儲存金鑰到 Google Sheets
+    // 儲存金鑰到 Google Sheets（使用 GET 請求避免 CORS）
     async saveKeyToDatabase(keyCode, keyType, usageBonus) {
         try {
             // 計算有效期（30天）
             const validUntil = new Date();
             validUntil.setDate(validUntil.getDate() + 30);
 
-            const response = await fetch(this.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'CREATE_KEY',
-                    key: {
-                        code: keyCode,
-                        type: keyType,
-                        usageBonus: usageBonus,
-                        createdTime: new Date().toISOString(),
-                        validUntil: validUntil.toISOString(),
-                        used: false,
-                        createdBy: 'WEB'
-                    }
-                })
+            const params = new URLSearchParams({
+                action: 'CREATE_KEY',
+                code: keyCode,
+                type: keyType,
+                usageBonus: usageBonus.toString(),
+                validUntil: validUntil.toISOString(),
+                createdBy: 'WEB'
+            });
+
+            const url = `${this.apiUrl}?${params.toString()}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors'
             });
 
             if (!response.ok) {
