@@ -2,7 +2,7 @@
 class GoogleSheetsKeyManager {
     constructor() {
         // 使用你的實際 Apps Script 部署 URL
-        this.apiUrl = 'https://script.google.com/macros/s/AKfycbzC_VzokTNnWlTObcreNMenUTXwzU1ik2ObEtvmoHAyaz9EVJ1r8R2PdT_5dAf8ASHn/exec';
+        this.apiUrl = 'https://script.google.com/macros/s/AKfycbzm08H3I3sY8Z7m5fb0VLFvQ0I73GFaCnOIegLH395B5q2NtbT2VxG5xukDMIZkwapv/exec';
         this.secretKey = 'ClickSprite_SecretKey_2024_Advanced_v2';
         this.keyPattern = /^CS-(FREE|PAID)-\d{8}-[A-Z0-9]{8}$/;
         this.maxDailyKeys = 5;
@@ -25,18 +25,27 @@ class GoogleSheetsKeyManager {
     // 生成金鑰的核心方法
     async generateKey(keyType, usageBonus) {
         try {
+            // 顯示載入狀態
+            this.showLoadingState('正在檢查每日限制...');
+            
             // 檢查每日限制
             const canGenerate = await this.checkDailyLimit();
             if (!canGenerate) {
                 throw new Error('今日金鑰生成次數已達上限');
             }
 
+            // 更新載入狀態
+            this.updateLoadingState('正在生成金鑰...');
+
             // 生成金鑰
             const timestamp = this.getCurrentTimestamp();
             const randomData = this.generateRandomData();
-            const keyCode = this.createKeyCode(keyType, timestamp, randomData);
+            const keyCode = await this.createKeyCode(keyType, timestamp, randomData);
             
             console.log(`生成的金鑰: ${keyCode}`);
+
+            // 更新載入狀態
+            this.updateLoadingState('正在儲存金鑰...');
 
             // 儲存到 Google Sheets
             const saveResult = await this.saveKeyToDatabase(keyCode, keyType, usageBonus);
@@ -60,6 +69,9 @@ class GoogleSheetsKeyManager {
                 success: false,
                 error: error.message
             };
+        } finally {
+            // 隱藏載入狀態
+            this.hideLoadingState();
         }
     }
 
@@ -67,6 +79,9 @@ class GoogleSheetsKeyManager {
     async validateKey(keyCode) {
         try {
             console.log(`開始驗證金鑰: ${keyCode}`);
+            
+            // 顯示載入狀態
+            this.showLoadingState('正在驗證金鑰格式...');
             
             // 基本格式驗證
             if (!this.keyPattern.test(keyCode)) {
@@ -76,13 +91,19 @@ class GoogleSheetsKeyManager {
                 };
             }
 
+            // 更新載入狀態
+            this.updateLoadingState('正在檢查金鑰完整性...');
+
             // 本地完整性驗證
-            if (!this.validateKeyIntegrity(keyCode)) {
+            if (!(await this.validateKeyIntegrity(keyCode))) {
                 return {
                     valid: false,
                     reason: '金鑰格式無效'
                 };
             }
+
+            // 更新載入狀態
+            this.updateLoadingState('正在查詢金鑰狀態...');
 
             // 查詢金鑰是否存在（使用 GET 請求避免 CORS）
             const params = new URLSearchParams({
@@ -143,6 +164,9 @@ class GoogleSheetsKeyManager {
                 valid: false,
                 reason: '驗證失敗: ' + error.message
             };
+        } finally {
+            // 隱藏載入狀態
+            this.hideLoadingState();
         }
     }
 
@@ -150,6 +174,9 @@ class GoogleSheetsKeyManager {
     async useKey(keyCode, hardwareFingerprint) {
         try {
             console.log(`開始使用金鑰: ${keyCode}`);
+            
+            // 顯示載入狀態
+            this.showLoadingState('正在使用金鑰...');
             
             const params = new URLSearchParams({
                 action: 'USE_KEY',
@@ -176,6 +203,9 @@ class GoogleSheetsKeyManager {
                 success: false,
                 message: '使用金鑰失敗: ' + error.message
             };
+        } finally {
+            // 隱藏載入狀態
+            this.hideLoadingState();
         }
     }
 
@@ -184,24 +214,42 @@ class GoogleSheetsKeyManager {
         try {
             // 獲取所有金鑰
             const allKeys = await this.getAllKeys();
+            console.log('getAllKeys 結果:', allKeys);
+            
+            // 如果無法獲取金鑰，允許生成（避免阻擋用戶）
             if (!allKeys.success) {
-                return false;
+                console.warn('無法獲取金鑰資料，允許生成以避免阻擋用戶');
+                return true;
             }
+
+            // 確保有 keys 陣列
+            const keys = allKeys.keys || [];
+            console.log('可用金鑰數量:', keys.length);
 
             // 計算今日生成的金鑰數量
             const today = new Date().toDateString();
-            const todayKeys = allKeys.keys.filter(key => {
+            console.log('檢查日期:', today);
+            
+            const todayKeys = keys.filter(key => {
+                if (!key.createdTime) {
+                    console.log(`金鑰 ${key.code} 沒有創建時間`);
+                    return false;
+                }
                 const createdDate = new Date(key.createdTime).toDateString();
+                console.log(`金鑰 ${key.code} 創建日期: ${createdDate}, 今日: ${today}, 匹配: ${createdDate === today}`);
                 return createdDate === today;
             });
 
             const canGenerate = todayKeys.length < this.maxDailyKeys;
             console.log(`今日已生成 ${todayKeys.length} 個金鑰，限制 ${this.maxDailyKeys} 個，可以生成: ${canGenerate}`);
+            console.log('今日金鑰列表:', todayKeys.map(k => ({ code: k.code, createdTime: k.createdTime })));
             
             return canGenerate;
         } catch (error) {
             console.error('檢查每日限制失敗:', error);
-            return false;
+            // 發生錯誤時允許生成，避免阻擋用戶
+            console.warn('檢查限制時發生錯誤，允許生成以避免阻擋用戶');
+            return true;
         }
     }
 
@@ -209,6 +257,8 @@ class GoogleSheetsKeyManager {
     async getAllKeys() {
         try {
             const url = `${this.apiUrl}?action=GET_ALL_KEYS`;
+            console.log('請求 URL:', url);
+            
             const response = await fetch(url, {
                 method: 'GET',
                 mode: 'cors'
@@ -219,13 +269,37 @@ class GoogleSheetsKeyManager {
             }
 
             const result = await response.json();
+            console.log('getAllKeys 回應:', result);
+            
+            // 檢查回應格式
+            if (result.success === false) {
+                console.error('API 返回錯誤:', result.error);
+                return {
+                    success: false,
+                    keys: [],
+                    total: 0,
+                    error: result.error
+                };
+            }
+            
+            // 確保有 keys 陣列
+            if (!result.keys) {
+                console.warn('回應中沒有 keys 陣列，使用空陣列');
+                return {
+                    success: true,
+                    keys: [],
+                    total: 0
+                };
+            }
+            
             return result;
         } catch (error) {
             console.error('獲取所有金鑰失敗:', error);
             return {
                 success: false,
                 keys: [],
-                total: 0
+                total: 0,
+                error: error.message
             };
         }
     }
@@ -284,10 +358,10 @@ class GoogleSheetsKeyManager {
     }
 
     // 創建金鑰代碼
-    createKeyCode(keyType, timestamp, randomData) {
+    async createKeyCode(keyType, timestamp, randomData) {
         const data = `${timestamp}_${randomData}_${this.secretKey}`;
-        const hash = this.sha256Hash(data).substring(0, 8).toUpperCase();
-        return `CS-${keyType}-${timestamp}-${hash}`;
+        const hash = await this.sha256Hash(data);
+        return `CS-${keyType}-${timestamp}-${hash.substring(0, 8).toUpperCase()}`;
     }
 
     // 儲存金鑰到 Google Sheets（使用 GET 請求避免 CORS）
@@ -307,6 +381,8 @@ class GoogleSheetsKeyManager {
             });
 
             const url = `${this.apiUrl}?${params.toString()}`;
+            console.log('儲存金鑰請求 URL:', url);
+            
             const response = await fetch(url, {
                 method: 'GET',
                 mode: 'cors'
@@ -317,6 +393,7 @@ class GoogleSheetsKeyManager {
             }
 
             const result = await response.json();
+            console.log('儲存金鑰回應:', result);
             return result;
         } catch (error) {
             console.error('儲存金鑰到資料庫失敗:', error);
@@ -328,7 +405,7 @@ class GoogleSheetsKeyManager {
     }
 
     // 驗證金鑰完整性
-    validateKeyIntegrity(keyCode) {
+    async validateKeyIntegrity(keyCode) {
         try {
             const parts = keyCode.split('-');
             if (parts.length !== 4) return false;
@@ -340,7 +417,8 @@ class GoogleSheetsKeyManager {
             // 重新計算雜湊
             const randomData = this.extractRandomDataFromTimestamp(timestamp);
             const data = `${timestamp}_${randomData}_${this.secretKey}`;
-            const expectedHash = this.sha256Hash(data).substring(0, 8).toUpperCase();
+            const hash = await this.sha256Hash(data);
+            const expectedHash = hash.substring(0, 8).toUpperCase();
 
             return providedHash === expectedHash;
         } catch {
@@ -462,6 +540,87 @@ class GoogleSheetsKeyManager {
             localStorage.setItem('clicksprite_key_log', JSON.stringify(keyData));
         } catch (error) {
             console.error('記錄金鑰生成失敗:', error);
+        }
+    }
+
+    // 顯示載入狀態
+    showLoadingState(message) {
+        // 如果已經有載入狀態，先移除
+        this.hideLoadingState();
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'googleSheetsLoadingState';
+        loadingDiv.className = 'google-sheets-loading-state';
+        loadingDiv.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            color: white;
+            font-family: Arial, sans-serif;
+        `;
+        
+        const spinner = document.createElement('div');
+        spinner.style.cssText = `
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        `;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.textContent = message;
+        messageDiv.style.cssText = `
+            font-size: 16px;
+            text-align: center;
+            max-width: 300px;
+        `;
+        
+        loadingDiv.appendChild(spinner);
+        loadingDiv.appendChild(messageDiv);
+        
+        // 加入 CSS 動畫
+        if (!document.getElementById('googleSheetsLoadingCSS')) {
+            const style = document.createElement('style');
+            style.id = 'googleSheetsLoadingCSS';
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        document.body.appendChild(loadingDiv);
+    }
+
+    // 更新載入狀態訊息
+    updateLoadingState(message) {
+        const loadingDiv = document.getElementById('googleSheetsLoadingState');
+        if (loadingDiv) {
+            const messageDiv = loadingDiv.querySelector('div:last-child');
+            if (messageDiv) {
+                messageDiv.textContent = message;
+            }
+        }
+    }
+
+    // 隱藏載入狀態
+    hideLoadingState() {
+        const loadingDiv = document.getElementById('googleSheetsLoadingState');
+        if (loadingDiv) {
+            loadingDiv.remove();
         }
     }
 }

@@ -12,7 +12,7 @@
             crossorigin="anonymous"></script>
     
     <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/png" href="APP_ICON.png">
 </head>
 <body>
     <!-- 導航列 -->
@@ -38,20 +38,6 @@
             <div class="hero-content">
                 <h1>專業點擊精靈</h1>
                 <p class="hero-subtitle">高精度滑鼠點擊輔助工具，支援顏色偵測、自動點擊等功能</p>
-                <div class="hero-stats">
-                    <div class="stat">
-                        <span class="stat-number">10,000+</span>
-                        <span class="stat-label">下載次數</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">4.8</span>
-                        <span class="stat-label">用戶評分</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">99%</span>
-                        <span class="stat-label">成功率</span>
-                    </div>
-                </div>
                 <button class="cta-button" onclick="scrollToDownload()">
                     🚀 立即下載
                 </button>
@@ -146,11 +132,11 @@
         <!-- 廣告區域 2 -->
         <section class="ad-section">
             <div class="ad-container">
-                <!-- 橫向廣告 -->
+                <!-- 橫向廣告 2 -->
                 <ins class="adsbygoogle"
                      style="display:block"
                      data-ad-client="ca-pub-3302498619485198"
-                     data-ad-slot="1797161078"
+                     data-ad-slot="6485137706"
                      data-ad-format="auto"
                      data-full-width-responsive="true"></ins>
             </div>
@@ -246,73 +232,77 @@
                 <h2>功能驗證測試</h2>
                 <p class="verify-description">在購買前，您可以先在網頁上體驗 ClickSprite 的核心功能</p>
                 
-                <div class="verify-container">
-                    <!-- 測試區域 -->
-                    <div class="test-area" id="testArea">
-                        <div class="test-area-label">測試區域 - 點擊出現的目標按鈕</div>
-                    </div>
-
-                    <!-- 控制面板 -->
-                    <div class="control-panel">
-                        <!-- 控制按鈕 -->
-                        <div class="control-group">
-                            <h3>控制</h3>
-                            <div class="button-group">
-                                <button id="startBtn" class="btn btn-start">開始測試</button>
-                                <button id="stopBtn" class="btn btn-stop" disabled>停止測試</button>
-                            </div>
-                        </div>
-
-                        <!-- 統計資料 -->
-                        <div class="control-group">
-                            <h3>統計資料</h3>
-                            <div class="statistics">
-                                <div class="stat-item">
-                                    <span class="stat-label">按鈕出現時間：</span>
-                                    <span id="targetAppearTime">-</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">目標按鈕點擊時間：</span>
-                                    <span id="targetClickTime">-</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">下一步按鈕點擊時間：</span>
-                                    <span id="nextClickTime">-</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">測試次數：</span>
-                                    <span id="testCount">0</span>
+                <!-- 控制與設定區域 -->
+                <div class="control-settings-section">
+                    <div class="control-group">
+                        <h3>控制與設定</h3>
+                        <div class="control-settings-container">
+                            <!-- 控制按鈕 -->
+                            <div class="control-section">
+                                <h4>控制</h4>
+                                <div class="button-group">
+                                    <button id="startBtn" class="btn btn-start">開始測試</button>
+                                    <button id="stopBtn" class="btn btn-stop" disabled>停止測試</button>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- 設定 -->
-                        <div class="control-group">
-                            <h3>設定</h3>
-                            <div class="settings">
-                                <div class="setting-item">
-                                    <label for="intervalInput">出現間隔：</label>
-                                    <input type="number" id="intervalInput" min="1" max="10000" value="3000">
-                                    <span>ms</span>
-                                </div>
-                                <div class="setting-item">
-                                    <label for="durationInput">持續時間：</label>
-                                    <input type="number" id="durationInput" min="500" max="10000" value="2000">
-                                    <span>ms</span>
-                                </div>
-                                <div class="setting-item">
-                                    <label for="colorInput">目標顏色：</label>
-                                    <input type="color" id="colorInput" value="#ff0000">
-                                    <span id="colorName">紅色</span>
+                            
+                            <!-- 設定選項 -->
+                            <div class="settings-section">
+                                <h4>設定</h4>
+                                <div class="settings">
+                                    <div class="setting-item">
+                                        <label for="intervalInput">出現間隔：</label>
+                                        <input type="number" id="intervalInput" min="1" max="10000" value="3000">
+                                        <span>ms</span>
+                                    </div>
+                                    <div class="setting-item">
+                                        <label for="durationInput">持續時間：</label>
+                                        <input type="number" id="durationInput" min="500" max="10000" value="2000">
+                                        <span>ms</span>
+                                    </div>
+                                    <div class="setting-item">
+                                        <label for="colorInput">目標顏色：</label>
+                                        <input type="color" id="colorInput" value="#ff0000">
+                                        <span id="colorName">紅色</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 下一步按鈕 -->
-                <div class="next-button-container">
-                    <button id="nextBtn" class="btn btn-next">下一步</button>
+                <!-- 主要測試區域 -->
+                <div class="verify-container">
+                    <!-- 左側區域 -->
+                    <div class="left-section">
+                        <!-- 測試區域 -->
+                        <div class="test-area" id="testArea">
+                            <div class="test-area-label">測試區域 - 點擊出現的目標按鈕</div>
+                        </div>
+
+                        <!-- 多個按鈕區域 -->
+                        <div class="multiple-buttons-container">
+                            <button id="button1" class="btn btn-action" data-button-id="1">按鈕1</button>
+                            <button id="button2" class="btn btn-action" data-button-id="2">按鈕2</button>
+                            <button id="button3" class="btn btn-action" data-button-id="3">按鈕3</button>
+                            <button id="button4" class="btn btn-action" data-button-id="4">按鈕4</button>
+                        </div>
+                    </div>
+
+                    <!-- 右側日誌區域 -->
+                    <div class="right-section">
+                        <!-- 事件日誌 -->
+                        <div class="control-group">
+                            <h3>事件日誌</h3>
+                            <div class="event-log" id="eventLog">
+                                <div class="log-entry">等待事件...</div>
+                            </div>
+                            <div class="log-controls">
+                                <button id="clearLogBtn" class="btn btn-clear">清除日誌</button>
+                                <span class="test-count">測試次數: <span id="testCount">0</span></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -357,11 +347,11 @@
         <!-- 廣告區域 3 -->
         <section class="ad-section">
             <div class="ad-container">
-                <!-- 橫向廣告 -->
+                <!-- 橫向廣告3 -->
                 <ins class="adsbygoogle"
                      style="display:block"
                      data-ad-client="ca-pub-3302498619485198"
-                     data-ad-slot="1797161078"
+                     data-ad-slot="5172056034"
                      data-ad-format="auto"
                      data-full-width-responsive="true"></ins>
             </div>
@@ -381,13 +371,38 @@
                 <!-- 廣告播放區域 -->
                 <div class="ad-video-container">
                     <div class="ad-video-player" id="adVideoPlayer">
-                        <!-- 彈出式獎勵廣告 -->
-                        <ins class="adsbygoogle"
-                             style="display:block"
-                             data-ad-client="ca-pub-3302498619485198"
-                             data-ad-slot="1129278367"
-                             data-ad-format="auto"
-                             data-full-width-responsive="true"></ins>
+                        <!-- 廣告1 -->
+                        <div class="ad-slot" id="adSlot1" style="display: block;">
+                            <!-- 彈出式獎勵 -->
+                            <ins class="adsbygoogle"
+                                 style="display:block"
+                                 data-ad-client="ca-pub-3302498619485198"
+                                 data-ad-slot="1129278367"
+                                 data-ad-format="auto"
+                                 data-full-width-responsive="true"></ins>
+                        </div>
+                        
+                        <!-- 廣告2 -->
+                        <div class="ad-slot" id="adSlot2" style="display: none;">
+                            <!-- 彈出式獎勵2 -->
+                            <ins class="adsbygoogle"
+                                 style="display:block"
+                                 data-ad-client="ca-pub-3302498619485198"
+                                 data-ad-slot="7095511796"
+                                 data-ad-format="auto"
+                                 data-full-width-responsive="true"></ins>
+                        </div>
+                        
+                        <!-- 廣告3 -->
+                        <div class="ad-slot" id="adSlot3" style="display: none;">
+                            <!-- 彈出式獎勵3 -->
+                            <ins class="adsbygoogle"
+                                 style="display:block"
+                                 data-ad-client="ca-pub-3302498619485198"
+                                 data-ad-slot="5782430129"
+                                 data-ad-format="auto"
+                                 data-full-width-responsive="true"></ins>
+                        </div>
                         
                         <!-- 廣告進度顯示 -->
                         <div class="ad-progress-overlay">
@@ -395,7 +410,7 @@
                                 <div class="ad-progress-fill" id="adProgressFill"></div>
                             </div>
                             <div class="ad-timer-display">
-                                <span id="adTimeRemaining">30</span> 秒
+                                <span id="adTimeRemaining">5</span> 秒
                             </div>
                         </div>
                     </div>
@@ -405,7 +420,7 @@
                 <div class="ad-controls">
                     <div class="ad-buttons">
                         <button id="adSkipBtn" class="ad-skip-btn" disabled onclick="skipAd()">
-                            跳過廣告 (30秒後可用)
+                            跳過廣告 (5秒後可用)
                         </button>
                     </div>
                 </div>

@@ -1,72 +1,65 @@
-// 金鑰生成器模組
+// 金鑰生成器模組 - 使用 Google Sheets API
 class KeyGenerator {
     constructor() {
-        this.secretKey = 'ClickSprite_SecretKey_2024_Advanced';
-        this.keyPattern = /^CS-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+        // 使用 Google Sheets Key Manager
+        this.keyManager = window.googleSheetsKeyManager;
+        this.keyPattern = /^CS-(FREE|PAID)-\d{8}-[A-Z0-9]{8}$/;
         this.maxDailyKeys = 5;
         this.keyValidityHours = 24;
-        this.usageBonus = 10;
+        this.usageBonus = 20; // 與 Google Sheets 中的設定一致
     }
 
-    // 生成金鑰
+    // 生成金鑰 - 使用 Google Sheets API
     async generateKey() {
         try {
             console.log('開始生成金鑰...');
             
-            // 檢查每日金鑰生成限制
-            if (!this.canGenerateKey()) {
-                console.error('金鑰生成失敗：今日金鑰生成次數已達上限');
-                throw new Error('今日金鑰生成次數已達上限');
+            // 使用 Google Sheets Key Manager 生成免費金鑰
+            const result = await this.keyManager.generateFreeKey();
+            
+            if (result.success) {
+                console.log('金鑰生成成功:', result.key);
+                return result.key;
+            } else {
+                console.error('金鑰生成失敗:', result.error);
+                throw new Error(result.error || '金鑰生成失敗');
             }
-
-            console.log('金鑰生成限制檢查通過');
-
-            // 使用與APP完全相同的金鑰生成算法
-            const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
-            const random = Math.floor(Math.random() * 90000) + 10000; // 5位隨機數 (10000-99999)
-            const data = `${timestamp}_${random}_${this.secretKey}`;
-            
-            console.log(`金鑰生成參數 - timestamp: ${timestamp}, random: ${random}`);
-            console.log(`雜湊輸入資料: ${data}`);
-            
-            const hash = await this.sha256Hash(data);
-            console.log(`SHA256 雜湊結果: ${hash}`);
-            
-            const key = `CS-${hash.substr(0,4)}-${hash.substr(4,4)}-${hash.substr(8,4)}`;
-            console.log(`最終生成的金鑰: ${key}`);
-            
-            // 記錄金鑰生成
-            this.logKeyGeneration(key, timestamp);
-            
-            return key;
         } catch (error) {
             console.error('生成金鑰失敗:', error);
-            throw new Error('金鑰生成失敗');
+            throw new Error('金鑰生成失敗: ' + error.message);
         }
     }
 
-    // 驗證金鑰
-    validateKey(key) {
+    // 驗證金鑰 - 使用 Google Sheets API
+    async validateKey(key) {
         try {
-            // 基本格式驗證
-            if (!this.keyPattern.test(key)) {
-                return { valid: false, reason: '格式不正確' };
+            console.log('開始驗證金鑰:', key);
+            
+            // 使用 Google Sheets Key Manager 驗證金鑰
+            const result = await this.keyManager.validateKey(key);
+            
+            if (result.valid) {
+                console.log('金鑰驗證成功:', result);
+                return {
+                    valid: true,
+                    reason: result.reason,
+                    usageBonus: result.usageBonus,
+                    keyType: result.keyType,
+                    validUntil: result.validUntil
+                };
+            } else {
+                console.log('金鑰驗證失敗:', result.reason);
+                return {
+                    valid: false,
+                    reason: result.reason
+                };
             }
-
-            // 檢查金鑰是否已使用
-            if (this.isKeyUsed(key)) {
-                return { valid: false, reason: '金鑰已使用' };
-            }
-
-            // 檢查金鑰是否過期（24小時）
-            if (this.isKeyExpired(key)) {
-                return { valid: false, reason: '金鑰已過期' };
-            }
-
-            return { valid: true, reason: '金鑰有效' };
         } catch (error) {
             console.error('驗證金鑰失敗:', error);
-            return { valid: false, reason: '驗證失敗' };
+            return {
+                valid: false,
+                reason: '驗證失敗: ' + error.message
+            };
         }
     }
 

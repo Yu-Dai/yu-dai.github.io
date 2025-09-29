@@ -261,7 +261,7 @@ function handleKeyPress(event) {
 let adPlayback = {
     isPlaying: false,
     isCompleted: false, // 防止重複完成
-    totalTime: 30, // 總觀看時間（秒）
+    totalTime: 30, // 總觀看時間（秒）- 3個廣告 × 10秒
     watchedTime: 0,
     currentAdIndex: 0,
     timer: null,
@@ -269,13 +269,13 @@ let adPlayback = {
         {
             title: "風之國度 Online",
             description: "風之國度Online以療癒風格打造全新PC MMO,帶你展開充滿愛與勇氣的暖心冒險",
-            duration: 15,
+            duration: 10,
             logo: "📱"
         },
         {
             title: "熱門手遊推薦",
             description: "探索最新的手機遊戲，享受精彩的遊戲體驗",
-            duration: 20,
+            duration: 10,
             logo: "🎮"
         },
         {
@@ -320,8 +320,8 @@ function stopAdPlayback() {
         adPlayback.timer = null;
     }
     
-    // 重置按鈕
-    resetAdButton();
+    // 更新按鈕狀態而不是重置
+    updateAdButtons();
 }
 
 // 載入廣告
@@ -329,15 +329,23 @@ function loadAd(adIndex) {
     const ad = adPlayback.ads[adIndex];
     if (!ad) return;
     
+    // 隱藏所有廣告
+    for (let i = 0; i < adPlayback.ads.length; i++) {
+        const adSlot = document.getElementById(`adSlot${i + 1}`);
+        if (adSlot) {
+            adSlot.style.display = 'none';
+        }
+    }
+    
+    // 顯示當前廣告
+    const currentAdSlot = document.getElementById(`adSlot${adIndex + 1}`);
+    if (currentAdSlot) {
+        currentAdSlot.style.display = 'block';
+    }
+    
     // 重新載入 AdSense 廣告
     if (window.adsbygoogle) {
         (adsbygoogle = window.adsbygoogle || []).push({});
-    }
-    
-    // 重置進度條
-    const progressFill = document.getElementById('adProgressFill');
-    if (progressFill) {
-        progressFill.style.width = '0%';
     }
     
     console.log(`載入廣告 ${adIndex + 1}: ${ad.title}`);
@@ -352,17 +360,20 @@ function updateAdPlayback() {
     // 更新顯示
     updateAdDisplay();
     
-    // 檢查是否需要載入下一個廣告
+    // 檢查當前廣告是否播放完成
     const currentAd = adPlayback.ads[adPlayback.currentAdIndex];
-    if (currentAd && adPlayback.watchedTime >= currentAd.duration) {
-        // 載入下一個廣告
-        adPlayback.currentAdIndex++;
-        if (adPlayback.currentAdIndex < adPlayback.ads.length) {
+    if (currentAd) {
+        const currentAdStartTime = adPlayback.currentAdIndex * 10; // 每個廣告 10 秒
+        const currentAdElapsed = adPlayback.watchedTime - currentAdStartTime;
+        
+        // 如果當前廣告播放完成，切換到下一個廣告
+        if (currentAdElapsed >= 10 && adPlayback.currentAdIndex < adPlayback.ads.length - 1) {
+            adPlayback.currentAdIndex++;
             loadAd(adPlayback.currentAdIndex);
         }
     }
     
-    // 檢查是否完成總觀看時間（只停止計時器，不自動獲得獎勵）
+    // 檢查是否完成所有廣告觀看
     if (adPlayback.watchedTime >= adPlayback.totalTime) {
         // 停止播放，但不自動獲得獎勵
         stopAdPlayback();
@@ -395,29 +406,102 @@ function updateAdButtons() {
     const remainingTime = Math.max(0, adPlayback.totalTime - adPlayback.watchedTime);
     
     if (skipBtn) {
+        // 檢查是否所有廣告都播放完成
         if (adPlayback.watchedTime >= adPlayback.totalTime) {
+            // 所有廣告播放完成，可以獲得獎勵
             skipBtn.disabled = false;
             skipBtn.textContent = '獲得獎勵';
             skipBtn.onclick = () => {
+                // 立即禁用按鈕防止重複點擊
+                skipBtn.disabled = true;
+                skipBtn.textContent = '處理中...';
+                
                 completeAdWatch();
                 closeAdReward(); // 立即關閉視窗
             };
-        } else if (adPlayback.watchedTime >= 30) {
-            skipBtn.disabled = false;
-            skipBtn.textContent = `跳過廣告 (${remainingTime}秒後完成)`;
-            skipBtn.onclick = skipAd;
         } else {
-            skipBtn.disabled = true;
-            skipBtn.textContent = `跳過廣告 (${Math.max(0, 30 - adPlayback.watchedTime)}秒後可用)`;
+            // 計算當前廣告的進度
+            const currentAdStartTime = adPlayback.currentAdIndex * 10; // 每個廣告 10 秒
+            const currentAdElapsed = adPlayback.watchedTime - currentAdStartTime;
+            const currentAdRemaining = Math.max(0, 5 - currentAdElapsed); // 5 秒後可以跳過
+            
+            // 檢查是否為最後一則廣告
+            const isLastAd = adPlayback.currentAdIndex === adPlayback.ads.length - 1;
+            
+            if (isLastAd && currentAdElapsed >= 5) {
+                // 最後一個廣告看滿 5 秒，固定顯示獲得獎勵按鈕
+                skipBtn.disabled = false;
+                skipBtn.textContent = '獲得獎勵';
+                skipBtn.onclick = () => {
+                    skipBtn.disabled = true;
+                    skipBtn.textContent = '處理中...';
+                    completeAdWatch();
+                    closeAdReward();
+                };
+            } else if (currentAdElapsed >= 5 && !isLastAd) {
+                // 當前廣告看滿 5 秒，可以跳過到下一個廣告
+                skipBtn.disabled = false;
+                skipBtn.textContent = `跳過到廣告 ${adPlayback.currentAdIndex + 2}`;
+                skipBtn.onclick = skipToNextAd;
+            } else {
+                // 當前廣告還在播放中，需要等待 5 秒
+                skipBtn.disabled = true;
+                skipBtn.textContent = `跳過廣告 (${currentAdRemaining}秒後可用)`;
+            }
         }
     }
 }
 
-// 跳過廣告
-function skipAd() {
-    if (adPlayback.watchedTime < 30) {
-        showNotification('需要觀看至少 30 秒才能跳過', 'warning');
+// 跳過到下一則廣告
+function skipToNextAd() {
+    if (adPlayback.currentAdIndex >= adPlayback.ads.length - 1) {
+        showNotification('已經是最後一則廣告', 'warning');
         return;
+    }
+    
+    // 立即禁用按鈕防止重複點擊
+    const skipBtn = document.getElementById('adSkipBtn');
+    if (skipBtn) {
+        skipBtn.disabled = true;
+        skipBtn.textContent = '切換中...';
+    }
+    
+    // 計算跳過後應該的時間點（跳到下一則廣告的開始時間）
+    const nextAdStartTime = (adPlayback.currentAdIndex + 1) * 10;
+    adPlayback.watchedTime = nextAdStartTime;
+    
+    // 切換到下一個廣告
+    adPlayback.currentAdIndex++;
+    loadAd(adPlayback.currentAdIndex);
+    
+    // 如果跳過到最後一則廣告，直接設定為可獲得獎勵狀態
+    if (adPlayback.currentAdIndex === adPlayback.ads.length - 1) {
+        // 設定為最後一則廣告的 5 秒後狀態，直接可以獲得獎勵
+        adPlayback.watchedTime = nextAdStartTime + 5;
+    }
+    
+    // 重新啟用按鈕
+    setTimeout(() => {
+        updateAdButtons();
+    }, 100);
+}
+
+// 跳過廣告（舊版本，保持向後兼容）
+function skipAd() {
+    // 檢查當前廣告是否看滿 5 秒
+    const currentAdStartTime = adPlayback.currentAdIndex * 10;
+    const currentAdElapsed = adPlayback.watchedTime - currentAdStartTime;
+    
+    if (currentAdElapsed < 5) {
+        showNotification('需要觀看至少 5 秒才能跳過', 'warning');
+        return;
+    }
+    
+    // 立即禁用按鈕防止重複點擊
+    const skipBtn = document.getElementById('adSkipBtn');
+    if (skipBtn) {
+        skipBtn.disabled = true;
+        skipBtn.textContent = '處理中...';
     }
     
     completeAdWatch();
@@ -481,16 +565,33 @@ function simulateAdPlay() {
 
 // 完成廣告觀看
 async function completeAdWatch() {
+    // 防止重複執行
+    if (adPlayback.isCompleted) return;
+    adPlayback.isCompleted = true;
+    
     try {
+        // 立即顯示載入狀態
+        showLoadingState('正在檢查金鑰生成限制...');
+        
         // 檢查是否可以生成金鑰
-        if (!window.keyGenerator.canGenerateKey()) {
+        const canGenerate = await window.googleSheetsKeyManager.checkDailyLimit();
+        if (!canGenerate) {
             showNotification('今日金鑰生成次數已達上限，請明天再試', 'warning');
             resetAdButton();
             return;
         }
 
-        // 生成金鑰（異步）
-        const key = await window.keyGenerator.generateKey();
+        // 更新載入狀態
+        updateLoadingState('正在生成金鑰...');
+
+        // 生成金鑰（使用 Google Sheets API）
+        const result = await window.googleSheetsKeyManager.generateFreeKey();
+        
+        if (!result.success) {
+            throw new Error(result.error || '金鑰生成失敗');
+        }
+        
+        const key = result.key;
         
         // 更新用戶統計
         userStats.dailyAdViews++;
@@ -515,6 +616,8 @@ async function completeAdWatch() {
         console.error('完成廣告觀看失敗:', error);
         showNotification('獲得金鑰失敗：' + error.message, 'error');
     } finally {
+        // 隱藏載入狀態
+        hideLoadingState();
         resetAdButton();
     }
 }
@@ -599,8 +702,11 @@ async function copyKey() {
 // 重置廣告按鈕
 function resetAdButton() {
     isWatchingAd = false;
+    adPlayback.isCompleted = false; // 重置完成狀態
+    
     const watchAdBtn = document.getElementById('watchAdBtn');
     const adTimerElement = document.getElementById('adTimer');
+    const skipBtn = document.getElementById('adSkipBtn');
     
     if (watchAdBtn) {
         watchAdBtn.disabled = userStats.dailyAdViews >= userStats.maxDailyAdViews;
@@ -616,6 +722,18 @@ function resetAdButton() {
         clearInterval(adTimer);
         adTimer = null;
     }
+    
+    // 重置廣告視窗中的按鈕
+    if (skipBtn) {
+        skipBtn.disabled = true;
+        skipBtn.textContent = '跳過廣告 (5秒後可用)';
+        skipBtn.onclick = null;
+    }
+    
+    // 重置廣告播放狀態
+    adPlayback.watchedTime = 0;
+    adPlayback.isPlaying = false;
+    adPlayback.isCompleted = false;
 }
 
 // 升級為付費用戶
@@ -808,9 +926,10 @@ class IParkVerify {
         this.targetButtons = [];
         this.targetAppearTime = null;
         this.targetClickTime = null;
-        this.nextClickTime = null;
+        this.buttonClickTime = null;
+        this.clickedButtonId = null;
         this.targetButtonClicked = false;
-        this.nextButtonClicked = false;
+        this.actionButtonClicked = false;
         this.testTimer = null;
         this.targetColor = '#ff0000';
         
@@ -841,10 +960,12 @@ class IParkVerify {
         this.status = document.getElementById('status');
         this.startBtn = document.getElementById('startBtn');
         this.stopBtn = document.getElementById('stopBtn');
-        this.nextBtn = document.getElementById('nextBtn');
-        this.targetAppearTimeEl = document.getElementById('targetAppearTime');
-        this.targetClickTimeEl = document.getElementById('targetClickTime');
-        this.nextClickTimeEl = document.getElementById('nextClickTime');
+        this.button1 = document.getElementById('button1');
+        this.button2 = document.getElementById('button2');
+        this.button3 = document.getElementById('button3');
+        this.button4 = document.getElementById('button4');
+        this.eventLog = document.getElementById('eventLog');
+        this.clearLogBtn = document.getElementById('clearLogBtn');
         this.testCountEl = document.getElementById('testCount');
         this.intervalInput = document.getElementById('intervalInput');
         this.durationInput = document.getElementById('durationInput');
@@ -856,7 +977,11 @@ class IParkVerify {
     bindEvents() {
         if (this.startBtn) this.startBtn.addEventListener('click', () => this.startTest());
         if (this.stopBtn) this.stopBtn.addEventListener('click', () => this.stopTest());
-        if (this.nextBtn) this.nextBtn.addEventListener('click', () => this.nextButtonClick());
+        if (this.button1) this.button1.addEventListener('click', () => this.actionButtonClick(1));
+        if (this.button2) this.button2.addEventListener('click', () => this.actionButtonClick(2));
+        if (this.button3) this.button3.addEventListener('click', () => this.actionButtonClick(3));
+        if (this.button4) this.button4.addEventListener('click', () => this.actionButtonClick(4));
+        if (this.clearLogBtn) this.clearLogBtn.addEventListener('click', () => this.clearLog());
         if (this.colorInput) this.colorInput.addEventListener('change', () => this.updateColor());
         
         // 測試區域點擊事件（用於除錯）
@@ -870,9 +995,8 @@ class IParkVerify {
         this.isTestRunning = true;
         this.testCount = 0;
         this.targetClickTime = null;
-        this.nextClickTime = null;
-        this.targetButtonClicked = false;
-        this.nextButtonClicked = false;
+        this.buttonClickTime = null;
+        this.clickedButtonId = null;
         
         // 清除所有現有的目標按鈕
         this.clearTargetButtons();
@@ -881,9 +1005,8 @@ class IParkVerify {
         if (this.startBtn) this.startBtn.disabled = true;
         if (this.stopBtn) this.stopBtn.disabled = false;
         
-        // 清除統計顯示
-        if (this.targetClickTimeEl) this.targetClickTimeEl.textContent = '-';
-        if (this.nextClickTimeEl) this.nextClickTimeEl.textContent = '-';
+        // 記錄測試開始
+        this.logEvent('測試開始');
         
         // 開始計時器
         const interval = this.intervalInput ? parseInt(this.intervalInput.value) : 3000;
@@ -908,13 +1031,14 @@ class IParkVerify {
         // 清除所有目標按鈕
         this.clearTargetButtons();
         
-        // 重置點擊狀態
-        this.targetButtonClicked = false;
-        this.nextButtonClicked = false;
+        // 重置點擊狀態（移除限制）
         
         // 更新 UI 狀態
         if (this.startBtn) this.startBtn.disabled = false;
         if (this.stopBtn) this.stopBtn.disabled = true;
+        
+        // 記錄測試停止
+        this.logEvent('測試停止');
         
         this.updateStatusDisplay();
         console.log('測試停止');
@@ -946,6 +1070,7 @@ class IParkVerify {
         // 記錄出現時間（只有第一個按鈕時記錄）
         if (this.targetButtons.length === 1) {
             this.targetAppearTime = new Date();
+            this.logEvent('出現顏色按鈕', 'appear');
         }
         
         // 設定自動消失計時器
@@ -971,12 +1096,8 @@ class IParkVerify {
                     this.targetButtons.splice(index, 1);
                 }
                 
-                // 如果沒有目標按鈕了，重置點擊狀態
+                // 如果沒有目標按鈕了，增加測試次數
                 if (this.targetButtons.length === 0) {
-                    this.targetButtonClicked = false;
-                    this.nextButtonClicked = false;
-                    this.targetClickTime = null;
-                    this.nextClickTime = null;
                     this.testCount++;
                     this.updateStatusDisplay();
                 }
@@ -998,36 +1119,24 @@ class IParkVerify {
     targetButtonClick(e, button) {
         e.stopPropagation();
         
-        if (!this.targetButtonClicked) {
-            this.targetClickTime = new Date();
-            this.targetButtonClicked = true;
-            
-            // 計算反應時間
-            if (this.targetAppearTime && this.targetClickTimeEl) {
-                const responseTime = this.targetClickTime - this.targetAppearTime;
-                this.targetClickTimeEl.textContent = `${responseTime}ms`;
-            }
-            
-            this.updateStatusDisplay();
-            console.log('目標按鈕被點擊');
-        }
+        // 移除限制，任何時候都可以點擊顏色按鈕
+        this.targetClickTime = new Date();
+        this.targetButtonClicked = true;
+        
+        this.logEvent('顏色按鈕被點擊', 'click');
+        this.updateStatusDisplay();
+        console.log('目標按鈕被點擊');
     }
     
-    // 下一步按鈕點擊事件
-    nextButtonClick() {
-        if (this.targetButtons.length > 0 && !this.nextButtonClicked) {
-            this.nextClickTime = new Date();
-            this.nextButtonClicked = true;
-            
-            // 計算反應時間
-            if (this.targetAppearTime && this.nextClickTimeEl) {
-                const responseTime = this.nextClickTime - this.targetAppearTime;
-                this.nextClickTimeEl.textContent = `${responseTime}ms`;
-            }
-            
-            this.updateStatusDisplay();
-            console.log('下一步按鈕被點擊');
-        }
+    // 動作按鈕點擊事件
+    actionButtonClick(buttonId) {
+        // 移除限制，任何時候都可以點擊按鈕
+        this.buttonClickTime = new Date();
+        this.clickedButtonId = buttonId;
+        
+        this.logEvent(`按鈕${buttonId}被點擊`, 'button');
+        this.updateStatusDisplay();
+        console.log(`按鈕${buttonId}被點擊`);
     }
     
     // 測試區域點擊事件（除錯用）
@@ -1047,16 +1156,37 @@ class IParkVerify {
         }
     }
     
+    // 記錄事件到日誌
+    logEvent(message, type = '') {
+        if (!this.eventLog) return;
+        
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0] + ':' + now.getMilliseconds().toString().padStart(3, '0');
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry ${type}`;
+        logEntry.textContent = `${message} - ${timeStr}`;
+        
+        this.eventLog.appendChild(logEntry);
+        
+        // 自動滾動到底部
+        this.eventLog.scrollTop = this.eventLog.scrollHeight;
+        
+        // 限制日誌條目數量（最多保留100條）
+        const entries = this.eventLog.querySelectorAll('.log-entry');
+        if (entries.length > 100) {
+            entries[0].remove();
+        }
+    }
+    
+    // 清除日誌
+    clearLog() {
+        if (this.eventLog) {
+            this.eventLog.innerHTML = '<div class="log-entry">日誌已清除</div>';
+        }
+    }
+    
     // 更新狀態顯示
     updateStatusDisplay() {
-        // 更新按鈕出現時間
-        if (this.targetButtons.length > 0 && this.targetAppearTime && this.targetAppearTimeEl) {
-            const elapsedTime = new Date() - this.targetAppearTime;
-            this.targetAppearTimeEl.textContent = `${elapsedTime}ms (共${this.targetButtons.length}個)`;
-        } else if (this.targetAppearTimeEl) {
-            this.targetAppearTimeEl.textContent = '-';
-        }
-        
         // 更新測試次數
         if (this.testCountEl) {
             this.testCountEl.textContent = this.testCount;
@@ -1140,6 +1270,17 @@ function hideLoadingState() {
     const loadingDiv = document.getElementById('loadingState');
     if (loadingDiv) {
         loadingDiv.remove();
+    }
+}
+
+// 更新載入狀態訊息
+function updateLoadingState(message) {
+    const loadingDiv = document.getElementById('loadingState');
+    if (loadingDiv) {
+        const messageDiv = loadingDiv.querySelector('div:last-child');
+        if (messageDiv) {
+            messageDiv.textContent = message;
+        }
     }
 }
 

@@ -125,6 +125,13 @@
             <button onclick="useKey()">使用金鑰</button>
             <div id="useKeyResult" class="result"></div>
         </div>
+
+        <div class="test-section">
+            <h3>7. 直接測試 Google Apps Script</h3>
+            <p>直接測試 Google Apps Script 的各種請求</p>
+            <button onclick="testDirectAPI()">測試直接 API 請求</button>
+            <div id="directAPIResult" class="result"></div>
+        </div>
     </div>
 
     <script src="google-sheets-key-manager.js"></script>
@@ -237,10 +244,29 @@
             resultDiv.textContent = '檢查中...';
             
             try {
+                // 獲取所有金鑰來檢查詳細資訊
+                const allKeys = await window.googleSheetsKeyManager.getAllKeys();
                 const canGenerate = await window.googleSheetsKeyManager.checkDailyLimit();
+                
+                // 計算今日金鑰數量
+                const today = new Date().toDateString();
+                const todayKeys = allKeys.keys ? allKeys.keys.filter(key => {
+                    const createdDate = new Date(key.createdTime).toDateString();
+                    return createdDate === today;
+                }) : [];
+                
                 const result = {
                     canGenerate: canGenerate,
-                    message: canGenerate ? '可以生成金鑰' : '今日金鑰生成次數已達上限'
+                    message: canGenerate ? '可以生成金鑰' : '今日金鑰生成次數已達上限',
+                    todayKeysCount: todayKeys.length,
+                    maxDailyKeys: window.googleSheetsKeyManager.maxDailyKeys,
+                    todayKeys: todayKeys.map(key => ({
+                        code: key.code,
+                        type: key.type,
+                        createdTime: key.createdTime,
+                        used: key.used
+                    })),
+                    allKeysCount: allKeys.keys ? allKeys.keys.length : 0
                 };
                 
                 resultDiv.textContent = JSON.stringify(result, null, 2);
@@ -273,6 +299,53 @@
                 resultDiv.className = 'result success';
             } catch (error) {
                 resultDiv.textContent = '使用失敗: ' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testDirectAPI() {
+            const resultDiv = document.getElementById('directAPIResult');
+            resultDiv.textContent = '測試中...';
+            
+            try {
+                const apiUrl = window.googleSheetsKeyManager.apiUrl;
+                const results = {};
+                
+                // 測試基本連接
+                console.log('測試基本連接...');
+                const basicResponse = await fetch(apiUrl);
+                const basicResult = await basicResponse.json();
+                results.basic = basicResult;
+                
+                // 測試 GET_ALL_KEYS - 添加時間戳避免快取
+                console.log('測試 GET_ALL_KEYS...');
+                const getAllKeysUrl = `${apiUrl}?action=GET_ALL_KEYS&t=${Date.now()}`;
+                console.log('GET_ALL_KEYS URL:', getAllKeysUrl);
+                const getAllKeysResponse = await fetch(getAllKeysUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+                const getAllKeysResult = await getAllKeysResponse.json();
+                results.getAllKeys = getAllKeysResult;
+                
+                // 測試 CREATE_KEY - 添加時間戳避免快取
+                console.log('測試 CREATE_KEY...');
+                const testKey = 'CS-FREE-TEST-' + Date.now() + '-TEST1234';
+                const createKeyUrl = `${apiUrl}?action=CREATE_KEY&code=${testKey}&type=FREE&usageBonus=20&createdBy=TEST&t=${Date.now()}`;
+                console.log('CREATE_KEY URL:', createKeyUrl);
+                const createKeyResponse = await fetch(createKeyUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+                const createKeyResult = await createKeyResponse.json();
+                results.createKey = createKeyResult;
+                
+                resultDiv.textContent = JSON.stringify(results, null, 2);
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = '測試失敗: ' + error.message;
                 resultDiv.className = 'result error';
             }
         }
